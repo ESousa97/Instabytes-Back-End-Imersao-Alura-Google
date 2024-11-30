@@ -28,6 +28,7 @@
     "test": ""
   },
   "dependencies": {
+    "@google-cloud/vertexai": "^1.9.0",
     "@google/generative-ai": "^0.21.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
