@@ -21,49 +21,42 @@ export async function postarNovoPost(req, res) {
 }
 
 export async function uploadImagem(req, res) {
-    const baseUrl = process.env.BASE_URL; // URL base do servidor
+    const baseUrl = process.env.BASE_URL;
 
     try {
-        // Salva a imagem inicialmente com o nome original no diretório de uploads
         const tempPath = req.file.path;
 
-        // Cria um documento no banco de dados para obter o `_id`
         const novoPost = {
-            imgUrl: "", // Placeholder para URL da imagem
-            descricao: "Descrição sendo gerada...", // Placeholder inicial
-            alt: "Alt sendo gerado...", // Placeholder inicial
+            imgUrl: "",
+            descricao: "Descrição sendo gerada...",
+            alt: "Alt sendo gerado...",
         };
 
         const postCriado = await criarPost(novoPost);
-        const postId = postCriado.insertedId.toString(); // Converte o ObjectId para string
+        const postId = postCriado.insertedId.toString();
 
-        // Define o novo caminho e nome do arquivo com base no `_id`
         const filePath = `uploads/${postId}.png`;
         const imgUrl = `${baseUrl}/${postId}.png`;
 
-        // Renomeia o arquivo no sistema de arquivos
         fs.renameSync(tempPath, filePath);
 
-        // Lê o buffer da imagem para enviar à API Gemini
         const imgBuffer = fs.readFileSync(filePath);
 
-        // Gera descrição e alt-text com o Gemini
-        const descricao = await gerarDescricaoComGemini(imgBuffer);
+        const { descricao, alt } = await gerarDescricaoComGemini(imgBuffer);
+        console.log("Descrição e Alt gerados:", { descricao, alt });
 
-        // Atualiza o documento no banco com os valores finais
         const postAtualizado = {
-            imgUrl, // URL final da imagem
+            imgUrl,
             descricao: descricao || "Descrição não disponível.",
-            alt: descricao || "Alt não disponível.",
+            alt: alt || "Alt não disponível.",
         };
 
         await atualizarPost(postId, postAtualizado);
 
-        // Retorna o documento atualizado
         res.status(200).json({ _id: postId, ...postAtualizado });
     } catch (erro) {
-        console.error(erro.message);
-        res.status(500).json({ "Erro": "Falha ao salvar o post ou gerar descrição" });
+        console.error("Erro durante uploadImagem:", erro.message, erro.stack);
+        res.status(500).json({ erro: erro.message || "Falha ao salvar o post ou gerar descrição" });
     }
 }
 
