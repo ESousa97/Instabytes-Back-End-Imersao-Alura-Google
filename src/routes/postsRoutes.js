@@ -8,6 +8,7 @@ import {
   postarNovoPost, 
   uploadImagem, 
   atualizarNovoPost,
+  deletarPostController,
   adicionarComentario,
   curtirPost
 } from "../controllers/postsController.js";
@@ -127,6 +128,72 @@ const validarComentario = (req, res, next) => {
   next();
 };
 
+// Middleware de validação para edição de posts
+const validarEdicaoPost = (req, res, next) => {
+  const { descricao, alt, autor } = req.body;
+  
+  // Pelo menos um campo deve ser fornecido
+  if (!descricao && !alt && !autor) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: 'Pelo menos um campo deve ser fornecido para atualização'
+    });
+  }
+  
+  // Validar descricao se fornecida
+  if (descricao !== undefined) {
+    if (typeof descricao !== 'string' || descricao.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Descrição deve ser um texto válido'
+      });
+    }
+    
+    if (descricao.length > 1000) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Descrição deve ter no máximo 1000 caracteres'
+      });
+    }
+  }
+  
+  // Validar alt se fornecido
+  if (alt !== undefined) {
+    if (typeof alt !== 'string') {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Texto alternativo deve ser um texto válido'
+      });
+    }
+    
+    if (alt.length > 200) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Texto alternativo deve ter no máximo 200 caracteres'
+      });
+    }
+  }
+  
+  // Validar autor se fornecido
+  if (autor !== undefined) {
+    if (typeof autor !== 'string' || autor.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Nome do autor deve ser um texto válido'
+      });
+    }
+    
+    if (autor.length > 50) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Nome do autor deve ter no máximo 50 caracteres'
+      });
+    }
+  }
+  
+  next();
+};
+
 // Definição das rotas
 const routes = (app) => {
   // Middleware global para logging
@@ -154,7 +221,10 @@ const routes = (app) => {
   );
   
   // Atualizar post existente
-  app.put("/posts/:id", validarPost, atualizarNovoPost);
+  app.put("/posts/:id", validarEdicaoPost, atualizarNovoPost);
+  
+  // Deletar post
+  app.delete("/posts/:id", deletarPostController);
   
   // Adicionar comentário a um post
   app.post("/posts/:id/comentarios", validarComentario, adicionarComentario);

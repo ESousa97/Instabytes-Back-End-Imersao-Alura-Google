@@ -10,7 +10,7 @@ const genAI = process.env.GEMINI_API_KEY
   : null;
 
 const model = genAI?.getGenerativeModel({ 
-  model: "gemini-2.5-pro-preview-03-25",
+  model: "gemini-2.0-flash-001",
   generationConfig: {
     temperature: 0.7,
     topK: 40,

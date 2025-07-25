@@ -3,6 +3,7 @@ import {
   getPostPorId,
   criarPost,
   atualizarPost,
+  deletarPost,
   adicionarComentarioAoPost,
   curtirOuDescurtirPost
 } from "../models/postsModel.js";
@@ -18,7 +19,7 @@ const __dirname = path.dirname(__filename);
 export async function listarPosts(req, res) {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 100;
     const skip = (page - 1) * limit;
 
     const posts = await getTodosPosts(skip, limit);
@@ -245,15 +246,33 @@ export async function uploadImagem(req, res) {
 export async function atualizarNovoPost(req, res) {
   try {
     const { id } = req.params;
-    const { descricao, alt } = req.body;
+    const { descricao, alt, autor } = req.body;
+
+    // Verificar se o post existe
+    const postExistente = await getPostPorId(id);
+    if (!postExistente) {
+      return res.status(404).json({
+        success: false,
+        error: "Post não encontrado",
+        message: "O post solicitado não existe"
+      });
+    }
 
     const postAtualizado = {
-      descricao: descricao.trim(),
       updatedAt: new Date()
     };
 
-    if (alt) {
+    // Atualizar apenas os campos fornecidos
+    if (descricao !== undefined) {
+      postAtualizado.descricao = descricao.trim();
+    }
+
+    if (alt !== undefined) {
       postAtualizado.alt = alt.trim();
+    }
+
+    if (autor !== undefined) {
+      postAtualizado.autor = autor.trim();
     }
 
     const resultado = await atualizarPost(id, postAtualizado);
@@ -266,11 +285,14 @@ export async function atualizarNovoPost(req, res) {
       });
     }
 
+    // Buscar o post atualizado
+    const postCompleto = await getPostPorId(id);
+
     res.status(200).json({
       success: true,
       data: {
-        _id: id,
-        ...postAtualizado
+        ...postCompleto,
+        shareUrl: `${req.protocol}://${req.get('host')}/posts/${id}`
       },
       message: "Post atualizado com sucesso"
     });
@@ -280,6 +302,68 @@ export async function atualizarNovoPost(req, res) {
       success: false,
       error: "Erro interno do servidor",
       message: "Falha ao atualizar post"
+    });
+  }
+}
+
+// **DELETAR POST**
+export async function deletarPostController(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Verificar se o post existe
+    const postExistente = await getPostPorId(id);
+    if (!postExistente) {
+      return res.status(404).json({
+        success: false,
+        error: "Post não encontrado",
+        message: "O post solicitado não existe"
+      });
+    }
+
+    // Deletar arquivo de imagem se existir
+    if (postExistente.imgUrl) {
+      try {
+        // Extrair nome do arquivo da URL
+        const urlParts = postExistente.imgUrl.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const filePath = path.join(__dirname, '../../uploads', fileName);
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Arquivo ${fileName} deletado com sucesso`);
+        }
+      } catch (fileError) {
+        console.warn("Erro ao deletar arquivo de imagem:", fileError.message);
+        // Não interromper o processo se não conseguir deletar o arquivo
+      }
+    }
+
+    // Deletar post do banco de dados
+    const resultado = await deletarPost(id);
+
+    if (resultado.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Post não encontrado",
+        message: "O post solicitado não existe"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        _id: id,
+        deleted: true
+      },
+      message: "Post deletado com sucesso"
+    });
+  } catch (error) {
+    console.error("Erro ao deletar post:", error);
+    res.status(500).json({
+      success: false,
+      error: "Erro interno do servidor",
+      message: "Falha ao deletar post"
     });
   }
 }
