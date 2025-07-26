@@ -928,7 +928,6 @@ Para questões técnicas, bugs, feature requests, ou colaborações no desenvolv
     Para parcerias técnicas, consultoria especializada, ou questões comerciais específicas.
     *   **GitHub:** [@ESousa97](https://github.com/ESousa97)
     *   **LinkedIn:** [José Enoque Sousa](https://www.linkedin.com/in/enoque-sousa-bb89aa168/)
-    *   **Email Técnico:** [dev@instabytes.com](mailto:dev@instabytes.com)
 
 *   **Comunidade e Suporte:**
     *   **🔴 Status da API:** [API Health Status](https://status.instabytes.com/)
