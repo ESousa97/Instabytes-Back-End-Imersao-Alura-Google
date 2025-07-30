@@ -22,7 +22,6 @@ O projeto **InstaBytes Backend** representa uma API robusta e completa para o ge
 
 *   [Introdução e Motivação](#introdução-e-motivação)
 *   [🔗 Link Principal / Acesso ao Projeto](#-link-principal--acesso-ao-projeto)
-*   [🎬 Demonstração Visual](#-demonstração-visual)
 *   [Arquitetura do Sistema](#arquitetura-do-sistema)
     *   [Diagrama de Arquitetura](#diagrama-de-arquitetura)
 *   [Decisões de Design Chave](#decisões-de-design-chave)
@@ -57,12 +56,6 @@ Acesse a API do InstaBytes Backend e explore a documentação interativa para en
 [🚀 Acesse a API InstaBytes Online](https://instabytes-backend.herokuapp.com/)
 
 Esta API oferece endpoints completos para upload de imagens, geração automática de descrições por IA, gerenciamento de posts, e todas as funcionalidades sociais necessárias para criar uma plataforma de compartilhamento visual moderna.
-
-## 🎬 Demonstração Visual
-
-<p align="center">
-  <img src="./assets/InstabyteBackEnd.gif" alt="Demonstração da API InstaBytes Backend em Funcionamento" width="800">
-</p>
 
 ## Arquitetura do Sistema
 
