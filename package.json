@@ -1,7 +1,7 @@
 {
   "name": "instabytes-backend",
   "version": "2.0.0",
-  "description": "API completa para gerenciamento de posts com IA e upload de imagens",
+  "description": "API para gerenciamento de posts com upload de imagens e descrição automática",
   "main": "server.js",
   "type": "module",
   "license": "MIT",
@@ -21,20 +21,23 @@
     "instagram-clone"
   ],
   "author": {
-    "name": "Desenvolvedor",
-    "email": "dev@exemplo.com"
+    "name": "ESousa97",
+    "email": "contato@exemplo.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/usuario/instabytes-backend"
+    "url": "https://github.com/ESousa97/Instabytes-Imersao-Alura-Google"
   },
   "scripts": {
     "dev": "node --watch --env-file=.env server.js",
     "start": "node server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "test": "echo \"Testes em desenvolvimento\" && exit 0",
-    "lint": "echo \"Linting em desenvolvimento\" && exit 0",
-    "build": "echo \"Build concluído\"",
+    "test": "node --test",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "build": "node -e \"console.log('No build step')\"",
+    "audit": "npm audit --audit-level=high",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js"
   },
@@ -53,7 +56,8 @@
   },
   "devDependencies": {
     "eslint": "^8.57.0",
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "prettier": "^3.3.3"
   },
   "optionalDependencies": {
     "sharp": "^0.33.2"
