@@ -411,6 +411,14 @@ export async function curtirPost(req, res) {
     const { id } = req.params;
     const { acao } = req.body; // 'curtir' ou 'descurtir'
 
+    if (!acao || !['curtir', 'descurtir'].includes(acao)) {
+      return res.status(400).json({
+        success: false,
+        error: "Validation error",
+        message: "Ação inválida. Use 'curtir' ou 'descurtir'"
+      });
+    }
+
     const incremento = acao === 'descurtir' ? -1 : 1;
     
     const resultado = await curtirOuDescurtirPost(id, incremento);

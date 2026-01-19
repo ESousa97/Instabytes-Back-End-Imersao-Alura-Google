@@ -1,24 +1,91 @@
-# InstaBytes Backend: API Inteligente para Gerenciamento de Conteúdo Visual
+# InstaBytes Backend
 
-**Transformando Imagens em Experiências Compartilháveis com Inteligência Artificial.**
+API REST para gerenciamento de posts com upload de imagens e geração opcional de descrição via Gemini.
 
----
+## Badges
 
-## Abstract (Resumo Técnico)
-
-O projeto **InstaBytes Backend** representa uma API robusta e completa para o gerenciamento inteligente de posts visuais, com foco particular na integração de inteligência artificial para aprimorar substancialmente a experiência do usuário. No contexto do crescente volume de conteúdo visual compartilhado online, o InstaBytes Backend aborda diretamente o problema crítico da necessidade de descrições e textos alternativos automatizados e contextualmente relevantes para imagens, otimizando tanto a acessibilidade digital quanto o engajamento orgânico dos usuários. A solução proposta materializa-se como uma API RESTful de alta performance construída com Node.js, Express.js e MongoDB, que incorpora o modelo Gemini da Google para gerar descrições e textos alternativos de qualidade superior para imagens enviadas pelos usuários. A metodologia principal envolve o uso combinado de algoritmos avançados de visão computacional e processamento de linguagem natural para analisar profundamente o conteúdo das imagens e produzir descrições textuais concisas, informativas e contextualmente apropriadas. Os resultados esperados e mensuráveis incluem a redução significativa do esforço manual na criação de conteúdo, a melhoria substancial da acessibilidade para usuários com deficiência visual, e o aumento documentado do engajamento nas plataformas de mídia social. A contribuição chave do InstaBytes Backend reside na sua capacidade inovadora de automatizar a geração de metadados significativos e semanticamente ricos para imagens, liberando os criadores de conteúdo para se concentrarem em aspectos estratégicos e criativos da sua produção, transformando fundamentalmente o workflow de criação de conteúdo visual.
-
-## Badges Abrangentes
-
-[![Licença MIT](https://img.shields.io/github/license/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Licença)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/blob/main/LICENSE)
-[![Linguagem Principal](https://img.shields.io/github/languages/top/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Linguagem%20Principal)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google)
-[![Último Commit](https://img.shields.io/github/last-commit/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Último%20Commit)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/commits/main)
-[![Issues Abertas](https://img.shields.io/github/issues/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Issues)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/issues)
-[![Pull Requests Abertas](https://img.shields.io/github/issues-pr/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Pull%20Requests)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/pulls)
-[![Tamanho do Código](https://img.shields.io/github/languages/code-size/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Tamanho%20do%20Código)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google)
-[![Contribuidores](https://img.shields.io/github/contributors/ESousa97/Instabytes-Imersao-Alura-Google?style=for-the-badge&label=Contribuidores)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/graphs/contributors)
+[![CI](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/ci.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/codeql.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/codeql.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/ESousa97/Instabytes-Imersao-Alura-Google/badge)](https://www.codefactor.io/repository/github/ESousa97/Instabytes-Imersao-Alura-Google)
+[![Coverage](https://img.shields.io/codecov/c/github/ESousa97/Instabytes-Imersao-Alura-Google?label=coverage)](https://codecov.io/gh/ESousa97/Instabytes-Imersao-Alura-Google)
+[![Licença MIT](https://img.shields.io/github/license/ESousa97/Instabytes-Imersao-Alura-Google?label=licen%C3%A7a)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/blob/main/LICENSE)
 
 ## Sumário
+- [Visão geral](#visão-geral)
+- [Tecnologias](#tecnologias)
+- [Requisitos](#requisitos)
+- [Configuração](#configuração)
+- [Uso](#uso)
+- [Scripts](#scripts)
+- [Endpoints](#endpoints)
+- [Arquitetura](#arquitetura)
+- [Contribuição](#contribuição)
+- [Segurança](#segurança)
+- [Licença](#licença)
+
+## Visão geral
+O serviço expõe endpoints para criação, leitura, atualização e remoção de posts. O upload de imagens cria posts com descrição e alt text gerados automaticamente via Gemini (quando configurado), com fallback seguro quando a API não está disponível.
+
+## Tecnologias
+- Node.js 18+
+- Express
+- MongoDB
+- Gemini AI (opcional)
+
+## Requisitos
+- Node.js 18+
+- MongoDB disponível
+
+## Configuração
+Crie um arquivo .env na raiz com:
+
+```env
+STRING_CONEXAO=mongodb+srv://user:pass@cluster.mongodb.net/instabytes
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+PORT=3000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+BASE_URL=http://localhost:3000
+```
+
+## Uso
+```bash
+npm install
+npm run dev
+```
+
+## Scripts
+- `npm run dev`: inicia com watch
+- `npm run lint`: lint do projeto
+- `npm test`: testes
+- `npm run build`: build (placeholder)
+- `npm run audit`: auditoria de dependências
+
+## Endpoints
+- `GET /health`
+- `GET /posts`
+- `GET /posts/:id`
+- `POST /posts`
+- `POST /upload`
+- `PUT /posts/:id`
+- `DELETE /posts/:id`
+- `POST /posts/:id/comentarios`
+- `POST /posts/:id/curtir`
+- `GET /stats`
+
+## Arquitetura
+Veja [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Contribuição
+Veja [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Segurança
+Veja [SECURITY.md](SECURITY.md).
+
+## Licença
+Veja [LICENSE](LICENSE).
+
+## Documentação legada (obsoleta)
 
 *   [Introdução e Motivação](#introdução-e-motivação)
 *   [🔗 Link Principal / Acesso ao Projeto](#-link-principal--acesso-ao-projeto)
@@ -378,7 +445,7 @@ Para instalação, configuração, e execução completa do InstaBytes Backend, 
 **Variáveis de Ambiente Obrigatórias:**
 ```env
 STRING_CONEXAO=mongodb+srv://user:pass@cluster.mongodb.net/instabytes
-GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 PORT=3000
 NODE_ENV=development
 ```
@@ -406,7 +473,7 @@ NODE_ENV=development
     
     # Editar .env com suas credenciais
     STRING_CONEXAO=sua_string_mongodb_atlas
-    GEMINI_API_KEY=sua_chave_gemini_api
+    GEMINI_API_KEY=YOUR_GEMINI_API_KEY
     PORT=3000
     NODE_ENV=development
     ```
@@ -472,7 +539,7 @@ volumes:
 NODE_ENV=production
 PORT=8080
 STRING_CONEXAO=mongodb+srv://prod-user:password@cluster.mongodb.net/instabytes-prod
-GEMINI_API_KEY=production_api_key
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 LOG_LEVEL=info
 RATE_LIMIT_MAX=1000
 ```
