@@ -4,11 +4,11 @@ API REST para gerenciamento de posts com upload de imagens e geração opcional 
 
 ## Badges
 
-[![CI](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/ci.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/codeql.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/codeql.yml)
-[![CodeFactor](https://www.codefactor.io/repository/github/ESousa97/instabytes-back-end-imersao-alura-google/badge)](https://www.codefactor.io/repository/github/esousa97/instabytes-back-end-imersao-alura-google)
-[![Coverage](https://img.shields.io/codecov/c/github/ESousa97/Instabytes-Imersao-Alura-Google?label=coverage)](https://codecov.io/gh/ESousa97/Instabytes-Imersao-Alura-Google)
-[![Licença MIT](https://img.shields.io/github/license/ESousa97/Instabytes-Imersao-Alura-Google?label=licen%C3%A7a)](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/blob/main/LICENSE)
+[![CI](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/ci.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Back-End-Imersao-Alura-Google/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ESousa97/Instabytes-Imersao-Alura-Google/actions/workflows/codeql.yml/badge.svg)](https://github.com/ESousa97/Instabytes-Back-End-Imersao-Alura-Google/actions/workflows/codeql.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/ESousa97/instabytes-back-end-imersao-alura-google/badge)](https://www.codefactor.io/repository/github/esousa97/Instabytes-Back-End-Imersao-Alura-Google)
+[![Coverage](https://img.shields.io/codecov/c/github/ESousa97/Instabytes-Imersao-Alura-Google?label=coverage)](https://codecov.io/gh/ESousa97/Instabytes-Back-End-Imersao-Alura-Google)
+[![Licença MIT](https://img.shields.io/github/license/ESousa97/Instabytes-Imersao-Alura-Google?label=licen%C3%A7a)](https://github.com/ESousa97/Instabytes-Back-End-Imersao-Alura-Google/blob/main/LICENSE)
 
 ## Sumário
 
