@@ -1,6 +1,5 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { upload, handleUploadError } from '../middleware/upload.js';
+import requestLogger from '../middleware/requestLogger.js';
 import { validarPost, validarComentario, validarEdicaoPost } from '../middleware/validation.js';
 import {
   listarPosts,
@@ -12,17 +11,12 @@ import {
   adicionarComentario,
   curtirPost
 } from '../controllers/postsController.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { getStats, sendUploadedFile } from '../controllers/systemController.js';
 
 // Definição das rotas
 const routes = (app) => {
   // Middleware global para logging
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
+  app.use(requestLogger);
 
   // **ROTAS PÚBLICAS**
 
@@ -53,39 +47,10 @@ const routes = (app) => {
   // **ROTAS DE UTILIDADE**
 
   // Verificar se arquivo existe
-  app.get('/uploads/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filepath = path.join(__dirname, '../../uploads', filename);
-
-    res.sendFile(filepath, (err) => {
-      if (err) {
-        res.status(404).json({
-          error: 'File not found',
-          message: 'Arquivo não encontrado'
-        });
-      }
-    });
-  });
+  app.get('/uploads/:filename', sendUploadedFile);
 
   // Estatísticas da aplicação
-  app.get('/stats', async (req, res) => {
-    try {
-      // Aqui você pode implementar estatísticas como:
-      // - Total de posts
-      // - Total de comentários
-      // - Posts mais curtidos
-      // etc.
-      res.json({
-        message: 'Estatísticas em desenvolvimento',
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      res.status(500).json({
-        error: 'Server error',
-        message: 'Erro ao buscar estatísticas'
-      });
-    }
-  });
+  app.get('/stats', getStats);
 };
 
 export default routes;

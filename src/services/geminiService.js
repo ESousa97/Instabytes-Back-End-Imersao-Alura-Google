@@ -19,23 +19,10 @@ const model = genAI?.getGenerativeModel({
   }
 });
 
-/**
- * Gera descrição e texto alternativo para uma imagem usando Google Gemini AI
- * @param {Buffer} imageBuffer - Buffer da imagem
- * @param {string} customPrompt - Prompt personalizado (opcional)
- * @returns {Promise<{descricao: string, alt: string}>}
- */
-export default async function gerarDescricaoComGemini(imageBuffer, customPrompt = null) {
-  // Fallback caso a API não esteja configurada
-  if (!genAI || !model) {
-    console.warn('Gemini AI não configurado, usando descrição padrão');
-    return {
-      descricao: 'Uma imagem interessante foi compartilhada! 📸',
-      alt: 'Imagem compartilhada pelo usuário'
-    };
-  }
+const DEFAULT_DESCRIPTION = 'Uma imagem interessante foi compartilhada! 📸';
+const DEFAULT_ALT = 'Imagem compartilhada pelo usuário';
 
-  const promptPadrao = `
+const DEFAULT_PROMPT = `
 Analise esta imagem e gere:
 
 1. Uma descrição natural e envolvente para redes sociais, como se fosse um post real
@@ -55,16 +42,77 @@ Retorne APENAS um JSON válido no formato:
   "alt": "seu texto alternativo aqui"
 }`;
 
-  const prompt = customPrompt || promptPadrao;
+const FALLBACK_DESCRIPTIONS = [
+  'Uma nova imagem foi compartilhada! ✨',
+  'Momento especial capturado em imagem 📷',
+  'Imagem interessante para compartilhar! 🖼️',
+  'Nova foto adicionada à galeria 🎯',
+  'Compartilhando um momento único 📸'
+];
+
+const buildImagePart = (imageBuffer, mimeType = 'image/png') => ({
+  inlineData: {
+    data: imageBuffer.toString('base64'),
+    mimeType
+  }
+});
+
+const cleanJsonText = (text) =>
+  text
+    .replace(/```json/gi, '')
+    .replace(/```/g, '')
+    .replace(/^\s*[\r\n]/gm, '')
+    .trim();
+
+const parseGeminiResponse = (text) => {
+  const cleanedText = cleanJsonText(text);
+
+  try {
+    return JSON.parse(cleanedText);
+  } catch (parseError) {
+    console.warn('Erro no parse JSON, tentando extrair manualmente:', parseError.message);
+
+    const descricaoMatch = cleanedText.match(/"descricao":\s*"([^"]+)"/);
+    const altMatch = cleanedText.match(/"alt":\s*"([^"]+)"/);
+
+    if (descricaoMatch && altMatch) {
+      return {
+        descricao: descricaoMatch[1],
+        alt: altMatch[1]
+      };
+    }
+
+    throw new Error('Não foi possível extrair descrição e alt text');
+  }
+};
+
+const sanitizeDescription = (text, maxLength, fallback) =>
+  text ? text.substring(0, maxLength).trim() : fallback;
+
+const getRandomFallbackDescription = () =>
+  FALLBACK_DESCRIPTIONS[Math.floor(Math.random() * FALLBACK_DESCRIPTIONS.length)];
+
+/**
+ * Gera descrição e texto alternativo para uma imagem usando Google Gemini AI
+ * @param {Buffer} imageBuffer - Buffer da imagem
+ * @param {string} customPrompt - Prompt personalizado (opcional)
+ * @returns {Promise<{descricao: string, alt: string}>}
+ */
+export default async function gerarDescricaoComGemini(imageBuffer, customPrompt = null) {
+  // Fallback caso a API não esteja configurada
+  if (!genAI || !model) {
+    console.warn('Gemini AI não configurado, usando descrição padrão');
+    return {
+      descricao: DEFAULT_DESCRIPTION,
+      alt: DEFAULT_ALT
+    };
+  }
+
+  const prompt = customPrompt || DEFAULT_PROMPT;
 
   try {
     // Preparar imagem para a API
-    const imagePart = {
-      inlineData: {
-        data: imageBuffer.toString('base64'),
-        mimeType: 'image/png' // Assumindo PNG, pode ser ajustado
-      }
-    };
+    const imagePart = buildImagePart(imageBuffer);
 
     console.log('🤖 Enviando imagem para Gemini AI...');
 
@@ -76,41 +124,10 @@ Retorne APENAS um JSON válido no formato:
     console.log('📝 Resposta bruta do Gemini:', text);
 
     // Limpar e processar resposta
-    const cleanedText = text
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .replace(/^\s*[\r\n]/gm, '')
-      .trim();
+    const parsedResponse = parseGeminiResponse(text);
 
-    // Tentar fazer parse do JSON
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(cleanedText);
-    } catch (parseError) {
-      console.warn('Erro no parse JSON, tentando extrair manualmente:', parseError.message);
-
-      // Fallback: tentar extrair com regex
-      const descricaoMatch = cleanedText.match(/"descricao":\s*"([^"]+)"/);
-      const altMatch = cleanedText.match(/"alt":\s*"([^"]+)"/);
-
-      if (descricaoMatch && altMatch) {
-        parsedResponse = {
-          descricao: descricaoMatch[1],
-          alt: altMatch[1]
-        };
-      } else {
-        throw new Error('Não foi possível extrair descrição e alt text');
-      }
-    }
-
-    // Validar e sanitizar resposta
-    const descricao = parsedResponse.descricao
-      ? parsedResponse.descricao.substring(0, 200).trim()
-      : 'Uma imagem interessante foi compartilhada! 📸';
-
-    const alt = parsedResponse.alt
-      ? parsedResponse.alt.substring(0, 100).trim()
-      : 'Imagem compartilhada pelo usuário';
+    const descricao = sanitizeDescription(parsedResponse.descricao, 200, DEFAULT_DESCRIPTION);
+    const alt = sanitizeDescription(parsedResponse.alt, 100, DEFAULT_ALT);
 
     console.log('✅ Descrição gerada com sucesso!');
 
@@ -127,20 +144,9 @@ Retorne APENAS um JSON válido no formato:
     }
 
     // Retornar descrição padrão em caso de erro
-    const fallbackDescricoes = [
-      'Uma nova imagem foi compartilhada! ✨',
-      'Momento especial capturado em imagem 📷',
-      'Imagem interessante para compartilhar! 🖼️',
-      'Nova foto adicionada à galeria 🎯',
-      'Compartilhando um momento único 📸'
-    ];
-
-    const descricaoAleatoria =
-      fallbackDescricoes[Math.floor(Math.random() * fallbackDescricoes.length)];
-
     return {
-      descricao: descricaoAleatoria,
-      alt: 'Imagem compartilhada pelo usuário'
+      descricao: getRandomFallbackDescription(),
+      alt: DEFAULT_ALT
     };
   }
 }
@@ -201,22 +207,13 @@ Responda APENAS com JSON:
 }`;
 
   try {
-    const imagePart = {
-      inlineData: {
-        data: imageBuffer.toString('base64'),
-        mimeType: 'image/png'
-      }
-    };
+    const imagePart = buildImagePart(imageBuffer);
 
     const result = await model.generateContent([promptSeguranca, imagePart]);
     const response = await result.response;
     const text = response.text();
 
-    const cleanedText = text
-      .replace(/```json/gi, '')
-      .replace(/```/g, '')
-      .trim();
-    const analise = JSON.parse(cleanedText);
+    const analise = JSON.parse(cleanJsonText(text));
 
     return {
       seguro: analise.seguro !== false, // Padrão seguro se não especificado

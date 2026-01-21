@@ -7,7 +7,9 @@ import rateLimit from 'express-rate-limit';
 import routes from './src/routes/postsRoutes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
+import { ensureDirectory } from './src/utils/fileUtils.js';
+import { globalErrorHandler, notFoundHandler } from './src/middleware/errorHandlers.js';
+import { healthCheck } from './src/controllers/systemController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,9 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const uploadsPath = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
+ensureDirectory(uploadsPath);
 
 // CORS configuration
 const corsOptions = {
@@ -52,48 +52,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(uploadsPath));
 
 // Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+app.get('/health', healthCheck);
 
 // API routes
 routes(app);
 
 // Global error handler
-app.use((err, req, res, _next) => {
-  console.error('Global error handler:', err);
-
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({
-      error: 'File too large',
-      message: 'O arquivo é muito grande. Tamanho máximo: 5MB'
-    });
-  }
-
-  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(400).json({
-      error: 'Invalid file field',
-      message: 'Campo de arquivo inválido'
-    });
-  }
-
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'production' ? 'Algo deu errado no servidor' : err.message
-  });
-});
+app.use(globalErrorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `Rota ${req.originalUrl} não encontrada`
-  });
-});
+app.use('*', notFoundHandler);
 
 // Start server
 app.listen(PORT, () => {
