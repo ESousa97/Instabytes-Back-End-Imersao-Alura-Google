@@ -1,7 +1,7 @@
 name: Bug report
 description: Reporte um problema para ajudarmos a resolver.
-title: "[Bug]: "
-labels: ["bug"]
+title: '[Bug]: '
+labels: ['bug']
 body:
   - type: markdown
     attributes:
@@ -34,6 +34,6 @@ body:
     id: versao
     attributes:
       label: Versão
-      placeholder: ex: 2.0.0
+      placeholder: 'ex: 2.0.0'
     validations:
       required: false

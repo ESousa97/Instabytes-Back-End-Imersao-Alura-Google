@@ -6,35 +6,55 @@ import {
   deletarPost,
   adicionarComentarioAoPost,
   curtirOuDescurtirPost
-} from "../models/postsModel.js";
-import fs from "fs";
-import path from "path";
+} from '../models/postsModel.js';
+import fs from 'fs';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import gerarDescricaoComGemini from "../services/geminiService.js";
+import gerarDescricaoComGemini from '../services/geminiService.js';
+import { sendError, sendSuccess } from '../utils/httpResponses.js';
+import { buildShareUrl, normalizePostResponse, parsePagination } from '../utils/postUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const handleNotFound = (res) =>
+  sendError(res, {
+    status: 404,
+    error: 'Post não encontrado',
+    message: 'O post solicitado não existe'
+  });
+
+const handleServerError = (res, error, message) => {
+  console.error(message, error);
+  return sendError(res, {
+    status: 500,
+    error: 'Erro interno do servidor',
+    message
+  });
+};
+
+const safeDeleteFile = (filePath, label) => {
+  if (filePath && fs.existsSync(filePath)) {
+    try {
+      fs.unlinkSync(filePath);
+    } catch (cleanupError) {
+      console.error(`Erro ao limpar ${label}:`, cleanupError);
+    }
+  }
+};
+
 // **LISTAR POSTS COM PAGINAÇÃO**
 export async function listarPosts(req, res) {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 100;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 100, maxLimit: 100 });
 
     const posts = await getTodosPosts(skip, limit);
-    
-    // Adicionar URLs completas para as imagens
-    const postsComUrls = posts.map(post => ({
-      ...post,
-      imgUrl: post.imgUrl ? post.imgUrl : null,
-      shareUrl: `${req.protocol}://${req.get('host')}/posts/${post._id}`,
-      createdAt: post.createdAt || new Date(),
-      updatedAt: post.updatedAt || new Date()
-    }));
 
-    res.status(200).json({
-      success: true,
+    // Adicionar URLs completas para as imagens
+    const postsComUrls = posts.map((post) => normalizePostResponse(post, req));
+
+    return sendSuccess(res, {
+      status: 200,
       data: postsComUrls,
       pagination: {
         page,
@@ -43,12 +63,7 @@ export async function listarPosts(req, res) {
       }
     });
   } catch (error) {
-    console.error("Erro ao listar posts:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao buscar posts"
-    });
+    return handleServerError(res, error, 'Falha ao buscar posts');
   }
 }
 
@@ -56,36 +71,21 @@ export async function listarPosts(req, res) {
 export async function obterPostPorId(req, res) {
   try {
     const { id } = req.params;
-    
+
     const post = await getPostPorId(id);
-    
+
     if (!post) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
-    // Adicionar informações extras
-    const postCompleto = {
-      ...post,
-      shareUrl: `${req.protocol}://${req.get('host')}/posts/${post._id}`,
-      createdAt: post.createdAt || new Date(),
-      updatedAt: post.updatedAt || new Date()
-    };
+    const postCompleto = normalizePostResponse(post, req);
 
-    res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 200,
       data: postCompleto
     });
   } catch (error) {
-    console.error("Erro ao buscar post:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao buscar post"
-    });
+    return handleServerError(res, error, 'Falha ao buscar post');
   }
 }
 
@@ -93,10 +93,10 @@ export async function obterPostPorId(req, res) {
 export async function postarNovoPost(req, res) {
   try {
     const { descricao, autor } = req.body;
-    
+
     const novoPost = {
       descricao: descricao.trim(),
-      autor: autor || "Anônimo",
+      autor: autor || 'Anônimo',
       imgUrl: null,
       alt: null,
       curtidas: 0,
@@ -106,23 +106,18 @@ export async function postarNovoPost(req, res) {
     };
 
     const postCriado = await criarPost(novoPost);
-    
-    res.status(201).json({
-      success: true,
+
+    return sendSuccess(res, {
+      status: 201,
       data: {
         _id: postCriado.insertedId,
         ...novoPost,
-        shareUrl: `${req.protocol}://${req.get('host')}/posts/${postCriado.insertedId}`
+        shareUrl: buildShareUrl(req, postCriado.insertedId)
       },
-      message: "Post criado com sucesso"
+      message: 'Post criado com sucesso'
     });
   } catch (error) {
-    console.error("Erro ao criar post:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao criar post"
-    });
+    return handleServerError(res, error, 'Falha ao criar post');
   }
 }
 
@@ -135,25 +130,25 @@ export async function uploadImagem(req, res) {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: "Arquivo não encontrado",
-        message: "Nenhuma imagem foi enviada"
+        error: 'Arquivo não encontrado',
+        message: 'Nenhuma imagem foi enviada'
       });
     }
 
     tempFilePath = req.file.path;
-    console.log("Arquivo recebido:", req.file);
+    console.log('Arquivo recebido:', req.file);
 
     // Criar post inicial
     const novoPost = {
-      descricao: "Gerando descrição automática...",
-      alt: "Gerando texto alternativo...",
-      imgUrl: "",
-      autor: req.body.autor || "Anônimo",
+      descricao: 'Gerando descrição automática...',
+      alt: 'Gerando texto alternativo...',
+      imgUrl: '',
+      autor: req.body.autor || 'Anônimo',
       curtidas: 0,
       comentarios: [],
       createdAt: new Date(),
       updatedAt: new Date(),
-      status: "processing"
+      status: 'processing'
     };
 
     const postCriado = await criarPost(novoPost);
@@ -163,7 +158,7 @@ export async function uploadImagem(req, res) {
     const fileExtension = path.extname(req.file.originalname);
     const newFileName = `${postId}${fileExtension}`;
     finalFilePath = path.join(path.dirname(tempFilePath), newFileName);
-    
+
     fs.renameSync(tempFilePath, finalFilePath);
     tempFilePath = null; // Arquivo já foi movido
 
@@ -183,12 +178,12 @@ export async function uploadImagem(req, res) {
     let descricaoIA, altIA;
     try {
       const resultadoIA = await gerarDescricaoComGemini(imgBuffer);
-      descricaoIA = resultadoIA.descricao || "Descrição não disponível";
-      altIA = resultadoIA.alt || "Imagem enviada pelo usuário";
+      descricaoIA = resultadoIA.descricao || 'Descrição não disponível';
+      altIA = resultadoIA.alt || 'Imagem enviada pelo usuário';
     } catch (iaError) {
-      console.warn("Erro na IA, usando descrição padrão:", iaError.message);
-      descricaoIA = "Uma imagem foi compartilhada";
-      altIA = "Imagem compartilhada";
+      console.warn('Erro na IA, usando descrição padrão:', iaError.message);
+      descricaoIA = 'Uma imagem foi compartilhada';
+      altIA = 'Imagem compartilhada';
     }
 
     // Atualizar post com informações finais
@@ -197,47 +192,33 @@ export async function uploadImagem(req, res) {
       descricao: descricaoIA,
       alt: altIA,
       updatedAt: new Date(),
-      status: "completed"
+      status: 'completed'
     };
 
     await atualizarPost(postId, postAtualizado);
 
     // Retornar resposta de sucesso
-    res.status(201).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 201,
       data: {
         _id: postId,
         ...novoPost,
         ...postAtualizado,
-        shareUrl: `${req.protocol}://${req.get('host')}/posts/${postId}`
+        shareUrl: buildShareUrl(req, postId)
       },
-      message: "Imagem enviada e processada com sucesso"
+      message: 'Imagem enviada e processada com sucesso'
     });
-
   } catch (error) {
-    console.error("Erro durante upload:", error);
+    console.error('Erro durante upload:', error);
 
     // Limpeza de arquivos em caso de erro
-    if (tempFilePath && fs.existsSync(tempFilePath)) {
-      try {
-        fs.unlinkSync(tempFilePath);
-      } catch (cleanupError) {
-        console.error("Erro ao limpar arquivo temporário:", cleanupError);
-      }
-    }
-    
-    if (finalFilePath && fs.existsSync(finalFilePath)) {
-      try {
-        fs.unlinkSync(finalFilePath);
-      } catch (cleanupError) {
-        console.error("Erro ao limpar arquivo final:", cleanupError);
-      }
-    }
+    safeDeleteFile(tempFilePath, 'arquivo temporário');
+    safeDeleteFile(finalFilePath, 'arquivo final');
 
-    res.status(500).json({
-      success: false,
-      error: "Erro no processamento",
-      message: error.message || "Falha ao processar upload"
+    return sendError(res, {
+      status: 500,
+      error: 'Erro no processamento',
+      message: error.message || 'Falha ao processar upload'
     });
   }
 }
@@ -251,11 +232,7 @@ export async function atualizarNovoPost(req, res) {
     // Verificar se o post existe
     const postExistente = await getPostPorId(id);
     if (!postExistente) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
     const postAtualizado = {
@@ -278,31 +255,22 @@ export async function atualizarNovoPost(req, res) {
     const resultado = await atualizarPost(id, postAtualizado);
 
     if (resultado.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
     // Buscar o post atualizado
     const postCompleto = await getPostPorId(id);
 
-    res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 200,
       data: {
         ...postCompleto,
-        shareUrl: `${req.protocol}://${req.get('host')}/posts/${id}`
+        shareUrl: buildShareUrl(req, id)
       },
-      message: "Post atualizado com sucesso"
+      message: 'Post atualizado com sucesso'
     });
   } catch (error) {
-    console.error("Erro ao atualizar post:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao atualizar post"
-    });
+    return handleServerError(res, error, 'Falha ao atualizar post');
   }
 }
 
@@ -314,11 +282,7 @@ export async function deletarPostController(req, res) {
     // Verificar se o post existe
     const postExistente = await getPostPorId(id);
     if (!postExistente) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
     // Deletar arquivo de imagem se existir
@@ -328,13 +292,13 @@ export async function deletarPostController(req, res) {
         const urlParts = postExistente.imgUrl.split('/');
         const fileName = urlParts[urlParts.length - 1];
         const filePath = path.join(__dirname, '../../uploads', fileName);
-        
+
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
           console.log(`Arquivo ${fileName} deletado com sucesso`);
         }
       } catch (fileError) {
-        console.warn("Erro ao deletar arquivo de imagem:", fileError.message);
+        console.warn('Erro ao deletar arquivo de imagem:', fileError.message);
         // Não interromper o processo se não conseguir deletar o arquivo
       }
     }
@@ -343,28 +307,19 @@ export async function deletarPostController(req, res) {
     const resultado = await deletarPost(id);
 
     if (resultado.deletedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
-    res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 200,
       data: {
         _id: id,
         deleted: true
       },
-      message: "Post deletado com sucesso"
+      message: 'Post deletado com sucesso'
     });
   } catch (error) {
-    console.error("Erro ao deletar post:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao deletar post"
-    });
+    return handleServerError(res, error, 'Falha ao deletar post');
   }
 }
 
@@ -383,25 +338,16 @@ export async function adicionarComentario(req, res) {
     const resultado = await adicionarComentarioAoPost(id, comentario);
 
     if (resultado.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
-    res.status(201).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 201,
       data: comentario,
-      message: "Comentário adicionado com sucesso"
+      message: 'Comentário adicionado com sucesso'
     });
   } catch (error) {
-    console.error("Erro ao adicionar comentário:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao adicionar comentário"
-    });
+    return handleServerError(res, error, 'Falha ao adicionar comentário');
   }
 }
 
@@ -412,27 +358,23 @@ export async function curtirPost(req, res) {
     const { acao } = req.body; // 'curtir' ou 'descurtir'
 
     if (!acao || !['curtir', 'descurtir'].includes(acao)) {
-      return res.status(400).json({
-        success: false,
-        error: "Validation error",
+      return sendError(res, {
+        status: 400,
+        error: 'Validation error',
         message: "Ação inválida. Use 'curtir' ou 'descurtir'"
       });
     }
 
     const incremento = acao === 'descurtir' ? -1 : 1;
-    
+
     const resultado = await curtirOuDescurtirPost(id, incremento);
 
     if (resultado.matchedCount === 0) {
-      return res.status(404).json({
-        success: false,
-        error: "Post não encontrado",
-        message: "O post solicitado não existe"
-      });
+      return handleNotFound(res);
     }
 
-    res.status(200).json({
-      success: true,
+    return sendSuccess(res, {
+      status: 200,
       data: {
         acao,
         incremento
@@ -440,11 +382,6 @@ export async function curtirPost(req, res) {
       message: `Post ${acao === 'descurtir' ? 'descurtido' : 'curtido'} com sucesso`
     });
   } catch (error) {
-    console.error("Erro ao curtir post:", error);
-    res.status(500).json({
-      success: false,
-      error: "Erro interno do servidor",
-      message: "Falha ao processar curtida"
-    });
+    return handleServerError(res, error, 'Falha ao processar curtida');
   }
 }

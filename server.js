@@ -22,9 +22,10 @@ if (!fs.existsSync(uploadsPath)) {
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : ['http://localhost:3000', 'http://localhost:8000', 'http://127.0.0.1:8000'],
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL
+      : ['http://localhost:3000', 'http://localhost:8000', 'http://127.0.0.1:8000'],
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -52,8 +53,8 @@ app.use('/uploads', express.static(uploadsPath));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -65,26 +66,24 @@ routes(app);
 // Global error handler
 app.use((err, req, res, _next) => {
   console.error('Global error handler:', err);
-  
+
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
       error: 'File too large',
       message: 'O arquivo é muito grande. Tamanho máximo: 5MB'
     });
   }
-  
+
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
     return res.status(400).json({
       error: 'Invalid file field',
       message: 'Campo de arquivo inválido'
     });
   }
-  
+
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Algo deu errado no servidor' 
-      : err.message
+    message: process.env.NODE_ENV === 'production' ? 'Algo deu errado no servidor' : err.message
   });
 });
 
